@@ -30,10 +30,15 @@ def generate_data():
 
 
 def split_train_test(data, parts, chosen=0):
-
-    amount = int((1 - 1 / parts) * len(data))
-    test_data = data[:amount]
-    train_data = data[amount:]
+    part_len = int(len(data) / parts)
+    first_divider = part_len * chosen - 1
+    if first_divider < 0:
+        first_divider = 0
+    second_divider = first_divider + part_len
+    # amount = int((1 - 1 / parts) * len(data))
+    train_data = data[:first_divider]
+    test_data = data[first_divider:second_divider]
+    train_data = train_data + (data[second_divider:])
     return train_data, test_data
 
 
@@ -62,16 +67,20 @@ def classify_knn(train_data, test_data, k):
 #
 
 
-def calculate_accuracy(parts):
+def calculate_accuracy(parts, t=6):
     global k
     data = generate_data()
-    train_data, test_data_with_classes = split_train_test(data, parts)
-    test_data = [test_data_with_classes[i][0] for i in range(len(test_data_with_classes))]
-    test_data_classes = classify_knn(train_data, test_data, k)
+    summ_accuracy = 0
+    for chosen_part in range(0, parts):
+        train_data, test_data_with_classes = split_train_test(data, parts, chosen=chosen_part)
+        test_data = [test_data_with_classes[i][0] for i in range(len(test_data_with_classes))]
+        test_data_classes = classify_knn(train_data, test_data, k)
+        accuracy = sum([int(test_data_classes[i] == test_data_with_classes[i][1]) for i in
+                    range(len(test_data_with_classes))]) / float(len(test_data_with_classes))
+        summ_accuracy += accuracy
     print("Accuracy: ",
-          sum([int(test_data_classes[i] == test_data_with_classes[i][1]) for i in
-               range(len(test_data_with_classes))]) / float(
-              len(test_data_with_classes)))
+          summ_accuracy/parts)
+    return summ_accuracy/parts
 
 
 def draw_plane(k):
@@ -130,17 +139,13 @@ def definePointClass(xdata, ydata):
 
 
 def onclick(event):
-    print('button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
-          (event.button, event.x, event.y, event.xdata, event.ydata))
     global nItemsInClass
     global k
     definePointClass(event.xdata, event.ydata)
-    print(k)
     draw_plane(k)
 
 
 def press(event):
-    print('press', event.key)
     if event.key == 'up':
         global k
         k += 2
@@ -157,8 +162,20 @@ if __name__ == '__main__':
     figure = pl.figure()
     figure.canvas.mpl_connect('button_press_event', onclick)
     figure.canvas.mpl_connect('key_press_event', press)
-    draw_plane(k)
+    # draw_plane(k)
+    accs = []
+    # for k in range(3, 14, 2):
+    #     accs.append(calculate_accuracy(10))
+    #     pl.pause(0.05)
+    #     draw_plane(k)
+    draw_plane(7)
+    calculate_accuracy(10)
     # while True:
-    #     pl.pause(1)
-    for i in range(2, 10):
-        print(calculate_accuracy(i))
+    #     pl.pause(0.05)
+    # for i in range(2, 20):
+    #     accs.append(calculate_accuracy(i))
+    # pl.plot([2*i + 3 for i in range(len(accs))],
+    #            accs, c='#FFF000')
+
+    while True:
+        pl.pause(0.05)

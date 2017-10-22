@@ -67,7 +67,7 @@ def classify_knn(train_data, test_data, k):
 #
 
 
-def calculate_accuracy(parts, t=6):
+def calculate_accuracy(parts):
     global k
     data = generate_data()
     summ_accuracy = 0

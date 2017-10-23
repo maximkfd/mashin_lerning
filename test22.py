@@ -1,5 +1,6 @@
 import math
 from random import shuffle
+
 import numpy as np
 import pylab as pl
 from matplotlib.colors import ListedColormap
@@ -50,13 +51,19 @@ def classify_knn(train_data, test_data, k):
     def dist(a, b):
         return math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2)
 
+    def kernel(u):
+        # return 1/2 # rectangular
+        # return 1 - abs(u) # triangular
+        return 3 / 4 * (1 - u * u)  # parabolic
+
     test_classes = []
     for testPoint in test_data:
         test_dist = [[dist(testPoint, train_data[i][0]), train_data[i][1]] for i in range(len(train_data))]
         # How many points of each class among nearest K
         stat = [0 for i in range(nClasses)]
-        for d in sorted(test_dist)[0:k]:
-            stat[d[1]] += 1
+        sorted_distances = sorted(test_dist)
+        for d in sorted_distances[0:k]:
+            stat[d[1]] += kernel(d[0] / sorted_distances[k][0])
         # Assign a class with the most number of occurences among K nearest neighbours
         test_classes.append(sorted(zip(stat, range(nClasses)), reverse=True)[0][1])
     return test_classes
@@ -76,11 +83,11 @@ def calculate_accuracy(parts):
         test_data = [test_data_with_classes[i][0] for i in range(len(test_data_with_classes))]
         test_data_classes = classify_knn(train_data, test_data, k)
         accuracy = sum([int(test_data_classes[i] == test_data_with_classes[i][1]) for i in
-                    range(len(test_data_with_classes))]) / float(len(test_data_with_classes))
+                        range(len(test_data_with_classes))]) / float(len(test_data_with_classes))
         summ_accuracy += accuracy
     print("Accuracy: ",
-          summ_accuracy/parts)
-    return summ_accuracy/parts
+          summ_accuracy / parts)
+    return summ_accuracy / parts
 
 
 def draw_plane(k):
@@ -168,7 +175,7 @@ if __name__ == '__main__':
     #     accs.append(calculate_accuracy(10))
     #     pl.pause(0.05)
     #     draw_plane(k)
-    draw_plane(7)
+    draw_plane(9)
     calculate_accuracy(10)
     # while True:
     #     pl.pause(0.05)

@@ -1,4 +1,3 @@
-import math
 from random import shuffle
 
 import numpy as np
@@ -9,6 +8,8 @@ train_data = []
 nItemsInClass = []
 nClasses = 2
 k = 3
+p = 2
+kernel_index = 0
 
 
 def generate_data():
@@ -49,12 +50,23 @@ def classify_knn(train_data, test_data, k):
     global nClasses
 
     def dist(a, b):
-        return math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2)
+        global p
+        return (abs(a[0] - b[0]) ** p + abs(a[1] - b[1]) ** p) ** (1. / p)
 
     def kernel(u):
-        # return 1/2 # rectangular
-        # return 1 - abs(u) # triangular
-        return 3 / 4 * (1 - u * u)  # parabolic
+        global kernel_index
+        if kernel_index == 0:
+            return 1 / 2  # rectangular
+        if kernel_index == 1:
+            if 1 - abs(u) is None:
+                print(u)
+                print(3 / 4 * (1 - u * u))
+            return 1 - abs(u)  # triangular
+        if kernel_index == 2:
+            if 3 / 4 * (1 - u * u) is None:
+                print(u)
+                print(3 / 4 * (1 - u * u))
+            return 3 / 4 * (1 - u * u)  # parabolic
 
     test_classes = []
     for testPoint in test_data:
@@ -79,18 +91,34 @@ def calculate_accuracy(parts):
     data = generate_data()
     summ_accuracy = 0
     for chosen_part in range(0, parts):
-        train_data, test_data_with_classes = split_train_test(data, parts, chosen=chosen_part)
-        test_data = [test_data_with_classes[i][0] for i in range(len(test_data_with_classes))]
-        test_data_classes = classify_knn(train_data, test_data, k)
-        accuracy = sum([int(test_data_classes[i] == test_data_with_classes[i][1]) for i in
-                        range(len(test_data_with_classes))]) / float(len(test_data_with_classes))
-        summ_accuracy += accuracy
-    print("Accuracy: ",
-          summ_accuracy / parts)
-    return summ_accuracy / parts
+        train_data, expert_data = split_train_test(data, parts, chosen=chosen_part)
+        test_data = [expert_data[i][0] for i in range(len(expert_data))]
+        classified_data = classify_knn(train_data, test_data, k)
+        tp, tn, fp, fn = 0, 0, 0, 0
+        for j in range(len(expert_data)):
+            if expert_data[j][1] == classified_data[j]:
+                if expert_data[j][1] == 1:
+                    tp += 1
+                else:
+                    tn += 1
+            else:
+                if expert_data[j][1] == 0:
+                    fp += 1
+                else:
+                    fn += 1
+        precall = tp / (tp + fn)
+        recision = tp / (tp + fp)
+        if precall + recision == 0:
+            return 0, 0
+        f_measure = 2 * (recision * precall) / (recision + precall)
+        # accuracy = sum([int(classified_data[i] == expert_data[i][1])
+        #                 for i in range(len(expert_data))]) / float(len(expert_data))
+
+        # summ_accuracy += accuracy
+    return (tp + tn) / len(expert_data), f_measure
 
 
-def draw_plane(k):
+def draw_plane(k, should_draw=True):
     # Generate a mesh of nodes that covers all train cases
     def generate_background_data(trainData):
         border_offset = 0.5
@@ -107,27 +135,29 @@ def draw_plane(k):
     train_data = generate_data()
     test_mesh = generate_background_data(train_data)
     test_mesh_classes = classify_knn(train_data, zip(test_mesh[0].ravel(), test_mesh[1].ravel()), k)
-    class_colormap = ListedColormap(['#FF9900', '#00FF00'])
-    test_colormap = ListedColormap(['#FFCCAA', '#AAFFAA'])
-    pl.ion()
-    pl.pcolormesh(test_mesh[0],
-                  test_mesh[1],
-                  np.asarray(test_mesh_classes).reshape(test_mesh[0].shape),
-                  cmap=test_colormap)
-    # pl.scatter(test_mesh[0],
-    #            test_mesh[1],
-    #            c=np.asarray(test_mesh_classes).reshape(test_mesh[0].shape),
-    #            cmap=test_colormap)
-    pl.scatter([train_data[i][0][0] for i in range(len(train_data))],
-               [train_data[i][0][1] for i in range(len(train_data))],
-               c=[train_data[i][1] for i in range(len(train_data))],
-               cmap=class_colormap)
-    pl.show()
+    if should_draw:
+        class_colormap = ListedColormap(['#FF9900', '#00FF00'])
+        test_colormap = ListedColormap(['#FFCCAA', '#AAFFAA'])
+        pl.ion()
+        pl.pcolormesh(test_mesh[0],
+                      test_mesh[1],
+                      np.asarray(test_mesh_classes).reshape(test_mesh[0].shape),
+                      cmap=test_colormap)
+        # pl.scatter(test_mesh[0],
+        #            test_mesh[1],
+        #            c=np.asarray(test_mesh_classes).reshape(test_mesh[0].shape),
+        #            cmap=test_colormap)
+        pl.scatter([train_data[i][0][0] for i in range(len(train_data))],
+                   [train_data[i][0][1] for i in range(len(train_data))],
+                   c=[train_data[i][1] for i in range(len(train_data))],
+                   cmap=class_colormap)
+        pl.show()
 
 
 def definePointClass(xdata, ydata):
     def dist(a, b):
-        return math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2)
+        global p
+        return ((a[0] - b[0]) ** p + (a[1] - b[1]) ** p) ** (1. / p)
 
     global nClasses
     global nItemsInClass
@@ -166,23 +196,49 @@ def press(event):
 
 
 if __name__ == '__main__':
-    figure = pl.figure()
-    figure.canvas.mpl_connect('button_press_event', onclick)
-    figure.canvas.mpl_connect('key_press_event', press)
-    # draw_plane(k)
-    accs = []
-    # for k in range(3, 14, 2):
-    #     accs.append(calculate_accuracy(10))
-    #     pl.pause(0.05)
-    #     draw_plane(k)
-    draw_plane(9)
-    calculate_accuracy(10)
-    # while True:
-    #     pl.pause(0.05)
-    # for i in range(2, 20):
-    #     accs.append(calculate_accuracy(i))
-    # pl.plot([2*i + 3 for i in range(len(accs))],
-    #            accs, c='#FFF000')
-
-    while True:
-        pl.pause(0.05)
+    acc = []
+    f_max = 0
+    acc_k = 0
+    acc_j = 0
+    acc_ki = 0
+    res_raw = {"k": [], "ki": [], "j": [], "p": [], "acc": [], "f": []}
+    res = []
+    for s in range(0, 3):
+        print("shuffle", s)
+        for i in range(3, 12, 2):
+            k = i
+            print("k", k)
+            for ki in range(0, 3):
+                # draw_plane(i, False)
+                for ip in range(2, 4):
+                    p = ip
+                    for j in range(2, 8):
+                        accuracy, f_measure = calculate_accuracy(j)
+                        res_raw["k"].append(k)
+                        res_raw["ki"].append(ki)
+                        res_raw["p"].append(p)
+                        res_raw["j"].append(j)
+                        res_raw["acc"].append(accuracy)
+                        res_raw["f"].append(f_measure)
+                        # print(k, kernel_index, j, p, accuracy, f_measure, sep="; ", end=";\n")
+                kernel_index += 1
+            kernel_index = 0
+        res.append(res_raw)
+        shuffle(train_data)
+    aver = {"k": [], "ki": [], "j": [], "p": [], "acc": [], "f": []}
+    for i in range(len(res_raw["k"])):
+        aver["k"].append((res[0]["k"][i] + res[1]["k"][i] + res[2]["k"][i]) / 3)
+        aver["ki"].append((res[0]["ki"][i] + res[1]["ki"][i] + res[2]["ki"][i]) / 3)
+        aver["p"].append((res[0]["p"][i] + res[1]["p"][i] + res[2]["p"][i]) / 3)
+        aver["j"].append((res[0]["j"][i] + res[1]["j"][i] + res[2]["j"][i]) / 3)
+        aver["acc"].append((res[0]["acc"][i] + res[1]["acc"][i] + res[2]["acc"][i]) / 3)
+        aver["f"].append((res[0]["f"][i] + res[1]["f"][i] + res[2]["f"][i]) / 3)
+        print(aver["k"][i], aver["ki"][i], aver["p"][i], aver["j"][i], aver["acc"][i], aver["f"][i])
+    for i in range(len(aver["k"])):
+        if aver['f'][i] > f_max:
+            f_max = aver['f'][i]
+            acc_k = aver['k'][i]
+            acc_j = aver['j'][i]
+            acc_ki = aver['ki'][i]
+            acc_p = aver['p'][i]
+    print(acc_k, acc_ki, acc_j, acc_p, f_max)

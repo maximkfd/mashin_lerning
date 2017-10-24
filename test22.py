@@ -50,8 +50,25 @@ def classify_knn(train_data, test_data, k):
     global nClasses
 
     def dist(a, b):
+
+        def transform(x1_old, x2_old, y1_old, y2_old):
+            x1 = x1_old - 0.2
+            x2 = x2_old - 0.2
+            y1 = y1_old - 0.2
+            y2 = y2_old - 0.2
+            z1 = (x1 ** 2 + y1 ** 2) ** (1/2) * 5
+            z2 = (x2 ** 2 + y2 ** 2) ** (1/2) * 5
+            return x1, x2, y1, y2, z1, z2
+
+        x1_old = a[0]
+        x2_old = b[0]
+        y1_old = a[1]
+        y2_old = b[1]
+        z1_old = 0
+        z2_old = 0
+        x1, x2, y1, y2, z1, z2 = transform(x1_old, x2_old, y1_old, y2_old)
         global p
-        return (abs(a[0] - b[0]) ** p + abs(a[1] - b[1]) ** p) ** (1. / p)
+        return (abs(x1 - x2) ** p + abs(y1 - y2) ** p + abs(z1 - z2) ** p) ** (1. / p)
 
     def kernel(u):
         global kernel_index
@@ -201,9 +218,10 @@ if __name__ == '__main__':
     acc_k = 0
     acc_j = 0
     acc_ki = 0
-    res_raw = {"k": [], "ki": [], "j": [], "p": [], "acc": [], "f": []}
     res = []
-    for s in range(0, 3):
+    shuffles = 5
+    for s in range(0, shuffles):
+        res_raw = {"k": [], "ki": [], "j": [], "p": [], "acc": [], "f": []}
         print("shuffle", s)
         for i in range(3, 12, 2):
             k = i
@@ -227,13 +245,13 @@ if __name__ == '__main__':
         shuffle(train_data)
     aver = {"k": [], "ki": [], "j": [], "p": [], "acc": [], "f": []}
     for i in range(len(res_raw["k"])):
-        aver["k"].append((res[0]["k"][i] + res[1]["k"][i] + res[2]["k"][i]) / 3)
-        aver["ki"].append((res[0]["ki"][i] + res[1]["ki"][i] + res[2]["ki"][i]) / 3)
-        aver["p"].append((res[0]["p"][i] + res[1]["p"][i] + res[2]["p"][i]) / 3)
-        aver["j"].append((res[0]["j"][i] + res[1]["j"][i] + res[2]["j"][i]) / 3)
-        aver["acc"].append((res[0]["acc"][i] + res[1]["acc"][i] + res[2]["acc"][i]) / 3)
-        aver["f"].append((res[0]["f"][i] + res[1]["f"][i] + res[2]["f"][i]) / 3)
-        print(aver["k"][i], aver["ki"][i], aver["p"][i], aver["j"][i], aver["acc"][i], aver["f"][i])
+        aver["k"].append(sum(res[j]["k"][i] for j in range(shuffles)) / shuffles)
+        aver["ki"].append(sum(res[j]["ki"][i] for j in range(shuffles)) / shuffles)
+        aver["p"].append(sum(res[j]["p"][i] for j in range(shuffles)) / shuffles)
+        aver["j"].append(sum(res[j]["j"][i] for j in range(shuffles)) / shuffles)
+        aver["acc"].append(sum(res[j]["acc"][i] for j in range(shuffles)) / shuffles)
+        aver["f"].append(sum(res[j]["f"][i] for j in range(shuffles)) / shuffles)
+        print(aver["k"][i], aver["ki"][i], aver["p"][i], aver["j"][i], aver["acc"][i], aver["f"][i], sep="; ")
     for i in range(len(aver["k"])):
         if aver['f'][i] > f_max:
             f_max = aver['f'][i]
@@ -241,4 +259,6 @@ if __name__ == '__main__':
             acc_j = aver['j'][i]
             acc_ki = aver['ki'][i]
             acc_p = aver['p'][i]
-    print(acc_k, acc_ki, acc_j, acc_p, f_max)
+    print(acc_k, acc_ki, acc_j, acc_p, f_max, sep="; ")
+    # draw_plane(3)
+    # pl.pause(0)

@@ -10,6 +10,7 @@ nClasses = 2
 k = 3
 p = 2
 kernel_index = 0
+spatial_transformation = 0
 
 
 def generate_data():
@@ -52,13 +53,16 @@ def classify_knn(train_data, test_data, k):
     def dist(a, b):
 
         def transform(x1_old, x2_old, y1_old, y2_old):
-            x1 = x1_old - 0.2
-            x2 = x2_old - 0.2
-            y1 = y1_old - 0.2
-            y2 = y2_old - 0.2
-            z1 = (x1 ** 2 + y1 ** 2) ** (1/2) * 5
-            z2 = (x2 ** 2 + y2 ** 2) ** (1/2) * 5
-            return x1, x2, y1, y2, z1, z2
+            if spatial_transformation == 0:
+                x1 = x1_old - 0.2
+                x2 = x2_old - 0.2
+                y1 = y1_old - 0.2
+                y2 = y2_old - 0.2
+                z1 = (x1 ** 2 + y1 ** 2) ** 2 * 5
+                z2 = (x2 ** 2 + y2 ** 2) ** 2 * 5
+                return x1, x2, y1, y2, z1, z2
+            else:
+                return x1_old, x2_old, y1_old, y2_old, 0, 0
 
         x1_old = a[0]
         x2_old = b[0]
@@ -75,14 +79,8 @@ def classify_knn(train_data, test_data, k):
         if kernel_index == 0:
             return 1 / 2  # rectangular
         if kernel_index == 1:
-            if 1 - abs(u) is None:
-                print(u)
-                print(3 / 4 * (1 - u * u))
-            return 1 - abs(u)  # triangular
+            return 15/16 * (1 - u**2) ** 2  # triangular
         if kernel_index == 2:
-            if 3 / 4 * (1 - u * u) is None:
-                print(u)
-                print(3 / 4 * (1 - u * u))
             return 3 / 4 * (1 - u * u)  # parabolic
 
     test_classes = []
@@ -123,6 +121,8 @@ def calculate_accuracy(parts):
                     fp += 1
                 else:
                     fn += 1
+        if (tp + fn) == 0 or tp + fp == 0 or tp == 0:
+            return 0, 0
         precall = tp / (tp + fn)
         recision = tp / (tp + fp)
         if precall + recision == 0:
@@ -200,15 +200,15 @@ def onclick(event):
 
 
 def press(event):
+    global k
+    k_in = k
     if event.key == 'up':
-        global k
-        k += 2
-        draw_plane(k)
+        k_in += 2
+        draw_plane(k_in)
         return
     if event.key == 'down':
-        global k
-        k -= 2
-        draw_plane(k)
+        k_in -= 2
+        draw_plane(k_in)
         return
 
 
@@ -221,29 +221,32 @@ if __name__ == '__main__':
     res = []
     shuffles = 5
     for s in range(0, shuffles):
-        res_raw = {"k": [], "ki": [], "j": [], "p": [], "acc": [], "f": []}
+        res_raw = {"k": [], "ki": [], "j": [], "p": [], "acc": [], "f": [], "s": []}
         print("shuffle", s)
         for i in range(3, 12, 2):
             k = i
             print("k", k)
-            for ki in range(0, 3):
-                # draw_plane(i, False)
-                for ip in range(2, 4):
-                    p = ip
-                    for j in range(2, 8):
-                        accuracy, f_measure = calculate_accuracy(j)
-                        res_raw["k"].append(k)
-                        res_raw["ki"].append(ki)
-                        res_raw["p"].append(p)
-                        res_raw["j"].append(j)
-                        res_raw["acc"].append(accuracy)
-                        res_raw["f"].append(f_measure)
-                        # print(k, kernel_index, j, p, accuracy, f_measure, sep="; ", end=";\n")
-                kernel_index += 1
-            kernel_index = 0
+            for spat in range(0, 2):
+                spatial_transformation = spat
+                for ki in range(0, 3):
+                    # draw_plane(i, False)
+                    for ip in range(2, 4):
+                        p = ip
+                        for j in range(2, 10):
+                            accuracy, f_measure = calculate_accuracy(j)
+                            res_raw["k"].append(k)
+                            res_raw["ki"].append(ki)
+                            res_raw["p"].append(p)
+                            res_raw["j"].append(j)
+                            res_raw["acc"].append(accuracy)
+                            res_raw["f"].append(f_measure)
+                            res_raw["s"].append(spat)
+                            # print(k, kernel_index, j, p, accuracy, f_measure, sep="; ", end=";\n")
+                    kernel_index += 1
+                kernel_index = 0
         res.append(res_raw)
         shuffle(train_data)
-    aver = {"k": [], "ki": [], "j": [], "p": [], "acc": [], "f": []}
+    aver = {"k": [], "ki": [], "j": [], "p": [], "acc": [], "f": [], "s": []}
     for i in range(len(res_raw["k"])):
         aver["k"].append(sum(res[j]["k"][i] for j in range(shuffles)) / shuffles)
         aver["ki"].append(sum(res[j]["ki"][i] for j in range(shuffles)) / shuffles)
@@ -251,7 +254,8 @@ if __name__ == '__main__':
         aver["j"].append(sum(res[j]["j"][i] for j in range(shuffles)) / shuffles)
         aver["acc"].append(sum(res[j]["acc"][i] for j in range(shuffles)) / shuffles)
         aver["f"].append(sum(res[j]["f"][i] for j in range(shuffles)) / shuffles)
-        print(aver["k"][i], aver["ki"][i], aver["p"][i], aver["j"][i], aver["acc"][i], aver["f"][i], sep="; ")
+        aver["s"].append(sum(res[j]["s"][i] for j in range(shuffles)) / shuffles)
+        print(aver["k"][i], aver["ki"][i], aver["p"][i], aver["j"][i], aver["acc"][i], aver["f"][i], aver["s"][i], sep="; ")
     for i in range(len(aver["k"])):
         if aver['f'][i] > f_max:
             f_max = aver['f'][i]
@@ -259,6 +263,7 @@ if __name__ == '__main__':
             acc_j = aver['j'][i]
             acc_ki = aver['ki'][i]
             acc_p = aver['p'][i]
-    print(acc_k, acc_ki, acc_j, acc_p, f_max, sep="; ")
+            acc_s = aver['s'][i]
+    print(acc_k, acc_ki, acc_j, acc_s, acc_p, f_max, sep="; ")
     # draw_plane(3)
     # pl.pause(0)

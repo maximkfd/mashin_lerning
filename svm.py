@@ -26,7 +26,7 @@ class SVMTrainer(object):
                 K[i, j] = self._kernel(x_i, x_j)
         return K
 
-    def _construct_predictor(self, X, y, lagrange_multipliers, MIN_SUPPORT_VECTOR_MULTIPLIER=2):
+    def _construct_predictor(self, X, y, lagrange_multipliers, MIN_SUPPORT_VECTOR_MULTIPLIER=0.01):
         support_vector_indices = \
             lagrange_multipliers > MIN_SUPPORT_VECTOR_MULTIPLIER
 

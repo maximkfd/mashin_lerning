@@ -32,6 +32,8 @@ def generate_data():
     return data
 
 
+
+
 def split_train_test(data, parts, chosen=0):
     part_len = int(len(data) / parts)
     first_divider = part_len * chosen - 1
@@ -79,7 +81,7 @@ def classify_knn(train_data, test_data, k):
         if kernel_index == 0:
             return 1 / 2  # rectangular
         if kernel_index == 1:
-            return 15/16 * (1 - u**2) ** 2  # triangular
+            return 15 / 16 * (1 - u ** 2) ** 2  # triangular
         if kernel_index == 2:
             return 3 / 4 * (1 - u * u)  # parabolic
 
@@ -255,7 +257,8 @@ if __name__ == '__main__':
         aver["acc"].append(sum(res[j]["acc"][i] for j in range(shuffles)) / shuffles)
         aver["f"].append(sum(res[j]["f"][i] for j in range(shuffles)) / shuffles)
         aver["s"].append(sum(res[j]["s"][i] for j in range(shuffles)) / shuffles)
-        print(aver["k"][i], aver["ki"][i], aver["p"][i], aver["j"][i], aver["acc"][i], aver["f"][i], aver["s"][i], sep="; ")
+        print(aver["k"][i], aver["ki"][i], aver["p"][i], aver["j"][i], aver["acc"][i], aver["f"][i], aver["s"][i],
+              sep="; ")
     for i in range(len(aver["k"])):
         if aver['f'][i] > f_max:
             f_max = aver['f'][i]

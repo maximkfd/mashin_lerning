@@ -55,23 +55,24 @@ def split_train_test(data, parts, chosen=0):
 
 
 
-def example(grid_size=50):
+def example(grid_size=30):
     samples, labels = generate_data()
     # samples = np.matrix(np.random.normal(size=num_samples * num_features).reshape(num_samples, num_features))
     # labels = 2 * (samples.sum(axis=1) > 0) - 1.0
     shufled_data = np.concatenate((samples, labels), axis=1)
     np.random.shuffle(shufled_data)
     f1_scores = []
-    parts = 3
+    parts = 5
+    trainer = SVMTrainer(Kernel.gaussian(0.16), 0.1)
     for i in range(parts):
         train_data, train_labels, test_data, test_labels = split_data(shufled_data, parts, i)
-        trainer = SVMTrainer(Kernel.gaussian(0.22), 0.1)
         predictor = trainer.train(train_data, train_labels)
 
         f1 = f_measure(test_labels, predictor, test_data)
         print(f1)
         f1_scores.append(f1)
     print(np.average(np.array(f1_scores)))
+    predictor = trainer.train(samples, labels)
     plot(predictor, samples, labels, grid_size)
 
 

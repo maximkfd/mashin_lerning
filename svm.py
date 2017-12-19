@@ -38,6 +38,7 @@ class SVMTrainer(object):
         # bias = y_k - \sum z_i y_i  K(x_k, x_i)
         # Thus we can just predict an example with bias of zero, and
         # compute error.
+        print("%d support vectors" % (len(support_vectors)))
         bias = np.mean(
             [y_k - SVMPredictor(
                 kernel=self._kernel,

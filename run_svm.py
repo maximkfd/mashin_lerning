@@ -55,24 +55,24 @@ def split_train_test(data, parts, chosen=0):
 
 
 
-def example(grid_size=200, filename="svm.pdf"):
+def example(grid_size=50):
     samples, labels = generate_data()
     # samples = np.matrix(np.random.normal(size=num_samples * num_features).reshape(num_samples, num_features))
     # labels = 2 * (samples.sum(axis=1) > 0) - 1.0
     shufled_data = np.concatenate((samples, labels), axis=1)
     np.random.shuffle(shufled_data)
     f1_scores = []
-    parts = 10
+    parts = 3
     for i in range(parts):
         train_data, train_labels, test_data, test_labels = split_data(shufled_data, parts, i)
-        trainer = SVMTrainer(Kernel.gaussian(0.001), 0.1)
+        trainer = SVMTrainer(Kernel.gaussian(0.22), 0.1)
         predictor = trainer.train(train_data, train_labels)
 
         f1 = f_measure(test_labels, predictor, test_data)
         print(f1)
         f1_scores.append(f1)
     print(np.average(np.array(f1_scores)))
-    plot(predictor, samples, labels, grid_size, filename)
+    plot(predictor, samples, labels, grid_size)
 
 
 def f_measure(labels, predictor, samples):
@@ -99,7 +99,7 @@ def f_measure(labels, predictor, samples):
     return 2 * precision * recall / (precision + recall)
 
 
-def plot(predictor, X, y, grid_size, filename):
+def plot(predictor, X, y, grid_size):
     x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
     y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
     xx, yy = np.meshgrid(np.linspace(x_min, x_max, grid_size),
